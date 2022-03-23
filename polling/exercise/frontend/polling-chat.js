@@ -46,7 +46,6 @@ async function getNewMsgs() {
 
     allChat = json.msg;
     render();
-    setTimeout(getNewMsgs, INTERVAL);
 }
 
 function render() {
@@ -62,5 +61,26 @@ function render() {
 const template = (user, msg) => {
     return `<li class="collection-item"><span class="badge">${user}</span>${msg}</li>`;
 };
-// make the first request
-getNewMsgs();
+
+/**
+ * @param {any} cb - callback to run on every interval
+ * @param {any} INTERVAL - time in ms
+ */
+function runPoll(cb, INTERVAL, startTime = 0) {
+    let timeToMakeNextRequest = startTime;
+
+    /**
+     * @param {any} time - time in ms passed by requestAnimationFrame (started from 0)
+     */
+    function rafTimer(time) {
+        if (timeToMakeNextRequest <= time) {
+            cb();
+            timeToMakeNextRequest = time + INTERVAL;
+        }
+        requestAnimationFrame(rafTimer);
+    }
+
+    requestAnimationFrame(rafTimer);
+}
+
+runPoll(getNewMsgs, INTERVAL);
