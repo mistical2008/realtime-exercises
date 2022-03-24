@@ -82,7 +82,7 @@ function getBackoffOnMaxTries({ failedTries, maxTries, backoff = 3000 }) {
 }
 
 function getInterval({ failedTries, interval, intervalOnFiled }) {
-    if (failedTries > 0 && failedTries <= 3) {
+    if (failedTries > 0 && failedTries <= MAX_TRIES) {
         return intervalOnFiled;
     }
     return interval;
