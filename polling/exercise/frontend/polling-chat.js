@@ -6,6 +6,8 @@ let allChat = [];
 
 // the interval to poll at in milliseconds
 const INTERVAL = 3000;
+const BACKOFF = 5000;
+let failedTries = 0;
 
 // a submit listener on the form in the HTML
 chat.addEventListener("submit", function (e) {
@@ -36,21 +38,25 @@ async function postNewMsg(user, text) {
 }
 
 async function getNewMsgs() {
-    let json;
     try {
         const res = await fetch("/poll");
-        json = await res.json();
+
+        if (res.status >= 400) {
+            throw new Error(`Request did not succeed: ${res.status}`);
+        }
+
+        const json = await res.json();
+
+        allChat = json.msg;
+        render();
+        failedTries = 0;
     } catch (error) {
         console.error("polling error", error);
+        failedTries++;
     }
-
-    allChat = json.msg;
-    render();
 }
 
 function render() {
-    // as long as allChat is holding all current messages, this will render them
-    // into the ui. yes, it's inefficent. yes, it's fine for this example
     const html = allChat.map(({ user, text, time, id }) => {
         return template(user, text, time, id);
     });
@@ -72,10 +78,10 @@ function runPoll(cb, INTERVAL, startTime = 0) {
     /**
      * @param {any} time - time in ms passed by requestAnimationFrame (started from 0)
      */
-    function rafTimer(time) {
+    async function rafTimer(time) {
         if (timeToMakeNextRequest <= time) {
-            cb();
-            timeToMakeNextRequest = time + INTERVAL;
+            await cb();
+            timeToMakeNextRequest = time + INTERVAL + BACKOFF * failedTries;
         }
         requestAnimationFrame(rafTimer);
     }
